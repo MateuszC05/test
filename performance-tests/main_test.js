@@ -1,19 +1,21 @@
-import { runScenario } from './scenarios/template_scenario.js';
+import { runScenario } from './scenarios/apptime_scenario.js';
 import { htmlReport } from "https://raw.githubusercontent.com/benc-uk/k6-reporter/main/dist/bundle.js";
-import { config } from './lib/config.js';
 
 // Konfiguracja scenariusza testowego (Options)
 export const options = {
     // Progi akceptacji (Thresholds)
     thresholds: {
-        http_req_failed: ['rate<0.01'], // Mniej niż 1% błędów
+        http_req_failed: ['rate<0.01'], // Mniej niż 1% błędów ogólnie
         http_req_duration: ['p(95)<500'], // 95% zapytań szybciej niż 500ms
+
+        // Specyficzne progi dla AppTime (przykład tagowania, wymagałby dodania tagów w requests)
+        // Można też po prostu polegać na ogólnych, lub zdefiniować grupy.
     },
     // Definicja etapów obciążenia (Stages)
     stages: [
-        { duration: '30s', target: 5 },  // Ramp-up do 5 użytkowników
-        { duration: '1m', target: 5 },   // Utrzymanie (Steady state)
-        { duration: '30s', target: 0 },  // Ramp-down
+        { duration: '30s', target: 5 },   // Rozgrzewka (Ramp-up)
+        { duration: '1m', target: 10 },   // Test właściwy (10 użytkowników klika w AppTime)
+        { duration: '30s', target: 0 },   // Wygaszanie (Ramp-down)
     ],
 };
 

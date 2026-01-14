@@ -1,7 +1,7 @@
-# Testy Wydajnościowe Pluginu Jira (k6)
+# Testy Wydajnościowe Pluginu AppTime (Jira)
 
-Ten katalog zawiera konfigurację testów wydajnościowych opartych na narzędziu **k6**.
-Testy są przystosowane do działania zarówno na środowisku **Jira Data Center (DC)** jak i **Jira Cloud**.
+Ten katalog zawiera konfigurację testów wydajnościowych opartych na narzędziu **k6**, dedykowanych dla wtyczki **AppTime**.
+Testy weryfikują stabilność i szybkość działania kluczowych funkcji wtyczki (np. wyświetlanie timesheetu, logowanie czasu).
 
 ## 1. Wymagania
 
@@ -12,68 +12,52 @@ Testy są przystosowane do działania zarówno na środowisku **Jira Data Center
 
 ## 2. Struktura Katalogów
 
-*   `main_test.js`: Główny punkt wejścia. Tutaj konfigurujesz `stages` (ilość użytkowników, czas trwania) i `thresholds` (warunki zaliczenia testu).
-*   `scenarios/`: Katalog ze scenariuszami testowymi (logika biznesowa).
-    *   `template_scenario.js`: Przykładowy scenariusz. Edytuj go, aby dodać zapytania do swojego pluginu.
-*   `lib/`: Pliki pomocnicze.
-    *   `config.js`: Obsługa zmiennych środowiskowych.
-    *   `utils.js`: Helpery (np. autoryzacja).
-*   `TEST_PLAN_TEMPLATE.md`: Szablon do planowania testów przed napisaniem kodu.
+*   `main_test.js`: Główny plik konfiguracyjny (stages, thresholds).
+*   `scenarios/apptime_scenario.js`: **Logika testów AppTime**. Tutaj zdefiniowane są konkretne zapytania (GET Timesheet, POST Worklog).
+*   `lib/`: Pliki pomocnicze (config, utils).
 
 ## 3. Konfiguracja i Uruchamianie
 
-Testy konfigurujemy za pomocą zmiennych środowiskowych. Nie wpisuj haseł bezpośrednio w kodzie!
+Testy są przygotowane pod Jira DC oraz Cloud.
 
-### Jira Data Center (DC)
-Używamy loginu i hasła.
+### Zmienne Środowiskowe
+| Zmienna | Opis | Przykład |
+|---------|------|----------|
+| `BASE_URL` | Adres instancji Jira | `https://jira.example.com` |
+| `JIRA_USER` | Login (DC) lub Email (Cloud) | `admin` |
+| `JIRA_TOKEN`| Hasło (DC) lub API Token (Cloud) | `secret123` |
+| `IS_CLOUD` | Czy to chmura? (true/false) | `false` |
+
+### Przykładowe Uruchomienie (Jira DC)
 
 ```bash
 k6 run \
-  -e BASE_URL="https://jira.twoja-firma.com" \
+  -e BASE_URL="http://localhost:8080" \
   -e JIRA_USER="admin" \
-  -e JIRA_TOKEN="tajneHaslo" \
+  -e JIRA_TOKEN="admin" \
   performance-tests/main_test.js
 ```
 
-### Jira Cloud
-Używamy adresu email i API Tokena (nie hasła do konta!).
-Token wygenerujesz tutaj: https://id.atlassian.com/manage-profile/security/api-tokens
+### Przykładowe Uruchomienie (Jira Cloud)
 
 ```bash
 k6 run \
-  -e BASE_URL="https://twoja-instancja.atlassian.net" \
-  -e JIRA_USER="user@example.com" \
-  -e JIRA_TOKEN="TwójApiToken123" \
+  -e BASE_URL="https://my-site.atlassian.net" \
+  -e JIRA_USER="jan@example.com" \
+  -e JIRA_TOKEN="AbCdEf123456" \
   -e IS_CLOUD="true" \
   performance-tests/main_test.js
 ```
 
-## 4. Raportowanie
+## 4. Dostosowanie Testów pod AppTime
 
-Po zakończeniu testu, w katalogu `performance-tests` pojawi się plik **`report.html`**.
-Otwórz go w przeglądarce, aby zobaczyć wykresy i szczegółowe statystyki.
+Aby testy działały poprawnie, musisz upewnić się, że endpointy w pliku `scenarios/apptime_scenario.js` odpowiadają tym rzeczywistym w Twojej aplikacji.
 
-## 5. Jak dodać własne testy?
+1.  Edytuj `performance-tests/scenarios/apptime_scenario.js`.
+2.  Znajdź sekcję `TODO`.
+3.  Zmień przykładowy URL `/rest/apptime/1.0/timesheet` na faktyczny adres REST API, z którego korzysta Twój frontend AppTime.
+4.  Dostosuj payload JSON dla logowania czasu (`POST /worklog`).
 
-1.  Otwórz `performance-tests/scenarios/template_scenario.js`.
-2.  Zidentyfikuj endpointy REST API swojego pluginu (np. używając Network tab w przeglądarce).
-3.  Dodaj wywołania `http.get` lub `http.post` wewnątrz funkcji `runScenario`.
-4.  Dodaj asercje (`check`), aby upewnić się, że plugin zwraca poprawne dane.
+## 5. Raportowanie
 
-Przykład:
-```javascript
-let res = http.get(`${config.baseUrl}/rest/my-plugin/1.0/tasks`, params);
-check(res, { 'tasks loaded': (r) => r.status === 200 });
-```
-
-## 6. Integracja z CI/CD (np. GitHub Actions / Bitbucket Pipelines)
-
-Możesz uruchamiać testy automatycznie.
-
-Przykład (bash):
-```bash
-# Zainstaluj k6 (jeśli nie ma w obrazie)
-# Uruchom test
-k6 run performance-tests/main_test.js
-# Wynik (exit code) zdecyduje czy pipeline przejdzie (zależnie od thresholds)
-```
+Wyniki zostaną zapisane w pliku `performance-tests/report.html`.
